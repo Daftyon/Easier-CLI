@@ -31,6 +31,7 @@ const banner = `
 function displayVersion() {
   console.log(`Version: ${packageJson.version}`);
 }
+
 function displayHelp() {
   console.log('\nUsage: easier [command] [options]\n');
   console.log('Commands:\n');
@@ -39,29 +40,17 @@ function displayHelp() {
   console.log(`  ${cyan}create, -c <folderName>${reset}\tCreate a new folder with the specified name.`);
   console.log(`  ${cyan}create-file, -cf <subfolderName> <file-name>${reset}\tCreate a new file in a subfolder.`);
   console.log(`  ${cyan}tree, -t <directory-path>${reset}\tDisplay the directory tree of a specified path.`);
-  console.log(`  ${cyan}generate-react-native <app-name> <template-repo-url>${reset}\tGenerate a React Native app from a EASIER template.\n`);
+  console.log(`  ${cyan}generate-react-native <app-name>${reset}\tGenerate a React Native app from a EASIER template.`);
+  console.log(`  ${cyan}download-language, -dl <project-name>${reset}\tDownload and setup Easier programming language from GitHub.\n`);
   console.log('Options:\n');
   console.log(`  ${cyan}--version, -v${reset}\tDisplay the version of the CLI tool`);
   console.log(`  ${cyan}--display-history, -dh${reset}\tDisplay the command history`);
   console.log(`  ${cyan}--info, -i${reset}\tDisplay additional information about EASIER`);
   console.log(`  ${cyan}--remove, -r${reset}\tRemove the EASIER cli`);
   console.log(`  ${cyan}--help, -h${reset}\tDisplay this help message`);
-
-
-
-
-  // rl.question('\nDo you want more details about any specific command? (yes/no): ', (answer) => {
-  //   if (answer.toLowerCase() === 'yes' || answer.toLowerCase() === 'y') {
-  //     // You can add more detailed help information here
-  //     console.log('Additional details about specific commands...');
-  //   }
-
-  //   rl.close();
-  // });
 }
 
 let commandStartTime = Date.now();
-
 
 function writeHistoryToExcel(workbook, excelFilePath, commandName, commandTime, duration) {
   try {
@@ -93,7 +82,6 @@ function writeHistoryToExcel(workbook, excelFilePath, commandName, commandTime, 
     }
   }
 }
-
 
 function historyCommands(commandArgs) {
   
@@ -153,6 +141,7 @@ function generateHTMLFile(name) {
     console.log(`${green}HTML file ${fileName} has been generated successfully.${reset}`);
   });
 }
+
 function createFileInSubfolder(subfolderPath, fileName) {
   const filePath = `${subfolderPath}/${fileName}`;
 
@@ -180,203 +169,282 @@ function createFolder(folderName) {
       console.log(`${green}Folder ${folderName} has been created successfully.${reset}`);
     });
   }
-  function displayDirectoryTree(directoryPath = process.cwd(), exportToFile = false) {
-    function traverseDirectory(currentPath, indent = '') {
-      const items = fs.readdirSync(currentPath);
-      const output = [];
-  
-      for (const item of items) {
-        const itemPath = path.join(currentPath, item);
-        const stats = fs.statSync(itemPath);
-  
-        if (stats.isDirectory()) {
-          output.push(`${indent}${cyan}${item}${reset}/`);
-          output.push(...traverseDirectory(itemPath, `${indent}  `));
-        } else {
-          output.push(`${indent}${item}`);
+
+function displayDirectoryTree(directoryPath = process.cwd(), exportToFile = false) {
+  function traverseDirectory(currentPath, indent = '') {
+    const items = fs.readdirSync(currentPath);
+    const output = [];
+
+    for (const item of items) {
+      const itemPath = path.join(currentPath, item);
+      const stats = fs.statSync(itemPath);
+
+      if (stats.isDirectory()) {
+        output.push(`${indent}${cyan}${item}${reset}/`);
+        output.push(...traverseDirectory(itemPath, `${indent}  `));
+      } else {
+        output.push(`${indent}${item}`);
+      }
+    }
+
+    return output;
+  }
+
+  const treeOutput = [`${cyan}Directory tree for: ${directoryPath}${reset}`, ...traverseDirectory(directoryPath)].join('\n');
+
+  if (exportToFile) {
+    const exportFileName = 'directory_tree.txt';
+    fs.writeFileSync(exportFileName, treeOutput);
+    console.log(`Directory tree has been exported to ${exportFileName}`);
+  } else {
+    console.log(treeOutput);
+  }
+}
+
+function generateReactNativeApp(appName) {
+  try {
+    const templateRepoUrl = 'https://github.com/HAFDIAHMED/react-native-firebase';
+
+    console.log(`
+************************************************************
+*                                                          *
+*             EASIER CLI Tool                           *
+*             Generating your React Native app...          *
+*             Please wait...                               *
+*                                                          *
+************************************************************
+    `);
+
+    // Clone the GitHub repository to a temporary directory.
+    const tempDir = `temp_${Date.now()}`;
+    execSync(`git clone ${templateRepoUrl} ${tempDir}`);
+
+    // Create a new directory for the app.
+    fs_extra.ensureDirSync(appName);
+
+    // Copy the cloned template to the app directory.
+    fs_extra.copySync(tempDir, appName);
+
+    // Remove the temporary directory.
+    fs_extra.removeSync(tempDir);
+
+    console.log(`React Native app '${appName}' generated from the GitHub template.`);
+    
+    // Change the current working directory to the newly created app directory.
+    process.chdir(appName);
+
+    // Run 'yarn install' to install Node.js modules.
+    execSync('yarn install', { stdio: 'inherit' });
+
+    console.log('Node.js modules installed successfully.');
+  } catch (error) {
+    console.error(`Error generating the app: ${error.message}`);
+  }
+}
+
+function downloadEasierLanguage(projectName) {
+  try {
+    const languageRepoUrl = 'https://github.com/Daftyon/Easier-language';
+
+    console.log(`
+************************************************************
+*                                                          *
+*             ${green}EASIER CLI Tool${reset}                              *
+*             ${cyan}Downloading Easier Programming Language...${reset}     *
+*             ${yellow}Please wait...${reset}                               *
+*                                                          *
+************************************************************
+    `);
+
+    // Clone the Easier language repository
+    console.log(`${cyan}Cloning Easier language repository...${reset}`);
+    execSync(`git clone ${languageRepoUrl} ${projectName}`, { stdio: 'inherit' });
+
+    console.log(`${green}✓ Easier language downloaded successfully to '${projectName}' directory.${reset}`);
+    
+    // Change to the project directory
+    process.chdir(projectName);
+    
+    // Check if there's a package.json file and install dependencies
+    const packageJsonPath = path.join(process.cwd(), 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      console.log(`${cyan}Installing language dependencies...${reset}`);
+      try {
+        execSync('npm install', { stdio: 'inherit' });
+        console.log(`${green}✓ Dependencies installed successfully.${reset}`);
+      } catch (installError) {
+        console.log(`${yellow}⚠ Could not install dependencies automatically. You may need to run 'npm install' manually.${reset}`);
+      }
+    }
+    
+    // Check for README or documentation
+    const readmePath = path.join(process.cwd(), 'README.md');
+    if (fs.existsSync(readmePath)) {
+      console.log(`${cyan}📚 Documentation found: README.md${reset}`);
+    }
+    
+    // Provide usage instructions
+    console.log(`
+${green}🎉 Easier Language Setup Complete!${reset}
+
+${cyan}Next steps:${reset}
+1. Navigate to your project: ${yellow}cd ${projectName}${reset}
+2. Read the documentation: ${yellow}cat README.md${reset}
+3. Explore the language examples and start coding!
+
+${cyan}Quick start:${reset}
+- Check the 'examples/' directory for sample programs
+- Run the compiler according to the project's documentation
+- Join the Daftyon community: ${yellow}https://github.com/Daftyon${reset}
+
+${green}Happy coding with Easier Language! 🚀${reset}
+    `);
+
+  } catch (error) {
+    console.error(`${red}❌ Error downloading Easier language: ${error.message}${reset}`);
+    console.log(`${yellow}💡 Troubleshooting tips:${reset}`);
+    console.log(`   - Make sure you have Git installed`);
+    console.log(`   - Check your internet connection`);
+    console.log(`   - Verify the repository URL: ${languageRepoUrl}`);
+    process.exit(1);
+  }
+}
+
+function removeEasier() {
+  try {
+    // Execute the command to remove EASIER
+    execSync('npm uninstall -g easier-cli', { stdio: 'inherit' });
+    console.log('EASIER has been removed successfully.');
+  } catch (error) {
+    console.error('Error removing EASIER:', error.message);
+  }
+}
+
+function checkEasierFile() {
+  const projectPath = process.cwd(); // Get the current working directory
+
+  // Check if 'easier.eas' file exists in the project
+  const filePath = path.join(projectPath, 'temp.eas');
+
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      console.log(`${red}The file 'easier.eas' does not exist in the project.${reset}`);
+    } else {
+      console.log(`${green}The file 'easier.eas' exists in the project.${reset}`);
+    }
+  });
+}
+
+function replaceProjectNameTokens(filePath, projectName, packageName,jobName) {
+  try {
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    
+    const updatedContent = fileContent
+    .replace(/\${project.name\.easier}/g, projectName)
+    .replace(/\${JOB.NAME\.easier}/g, jobName)
+    .replace(/\${package.name\.easier}/g, packageName);
+    fs.writeFileSync(filePath, updatedContent);
+    console.log(`File '${filePath}' ${green}updated successfully.${reset}`);
+  } catch (error) {
+    console.error(`Error replacing tokens in file '${filePath}': ${error.message}`);
+  }
+}
+
+function processDirectory(directoryPath, projectName, packageName,jobName,commonVersion) {
+  try {
+    // Read all files in the directory
+    const files = fs.readdirSync(directoryPath);
+
+    // Process each file in the directory
+    files.forEach((file) => {
+      const filePath = path.join(directoryPath, file);
+      const stats = fs.statSync(filePath);
+
+      if (stats.isDirectory()) {
+        // Recursively process subdirectories
+        processDirectory(filePath, projectName, packageName,jobName,commonVersion);
+      } else {
+        // Replace tokens in each file
+        replaceProjectNameTokens(filePath, projectName, packageName,jobName);
+        // Rename the file if it contains ${JOB.NAME.easier} common.version.easier
+        const newFileName = file.replace(/\${JOB.NAME\.easier}/g, jobName.toUpperCase()).replace(/\${common.version\.easier}/g,commonVersion);
+        if (newFileName !== file) {
+          const newFilePath = path.join(directoryPath, newFileName);
+          fs.renameSync(filePath, newFilePath);
+          console.log(`File '${filePath}' ${yellow}renamed to '${newFileName}' successfully.${reset}`);
         }
       }
-  
-      return output;
-    }
-  
-    const treeOutput = [`${cyan}Directory tree for: ${directoryPath}${reset}`, ...traverseDirectory(directoryPath)].join('\n');
-  
-    if (exportToFile) {
-      const exportFileName = 'directory_tree.txt';
-      fs.writeFileSync(exportFileName, treeOutput);
-      console.log(`Directory tree has been exported to ${exportFileName}`);
-    } else {
-      console.log(treeOutput);
-    }
+    });
+  } catch (error) {
+    console.error(`Error processing directory '${directoryPath}': ${error.message}`);
   }
-  function generateReactNativeApp(appName) {
-    try {
-      const templateRepoUrl = 'https://github.com/HAFDIAHMED/react-native-firebase';
-  
-      console.log(`
+}
+
+async function generateSpringBatchProject(projectName, templatePath) {
+  try {
+    console.log(`
   ************************************************************
   *                                                          *
-  *             EASIER CLI Tool                           *
-  *             Generating your React Native app...          *
+  *             EASIER CLI Tool                              *
+  *             Generating your Spring Batch project...      *
   *             Please wait...                               *
   *                                                          *
   ************************************************************
-      `);
-  
-      // Clone the GitHub repository to a temporary directory.
-      const tempDir = `temp_${Date.now()}`;
-      execSync(`git clone ${templateRepoUrl} ${tempDir}`);
-  
-      // Create a new directory for the app.
-      fs_extra.ensureDirSync(appName);
-  
-      // Copy the cloned template to the app directory.
-      fs_extra.copySync(tempDir, appName);
-  
-      // Remove the temporary directory.
-      fs_extra.removeSync(tempDir);
-  
-      console.log(`React Native app '${appName}' generated from the GitHub template.`);
-      
-      // Change the current working directory to the newly created app directory.
-      process.chdir(appName);
-  
-      // Run 'yarn install' to install Node.js modules.
-      execSync('yarn install', { stdio: 'inherit' });
-  
-      console.log('Node.js modules installed successfully.');
-    } catch (error) {
-      console.error(`Error generating the app: ${error.message}`);
-    }
-  }
-  
-  function removeEasier() {
-    try {
-      // Execute the command to remove EASIER
-      execSync('npm uninstall -g easier-cli', { stdio: 'inherit' });
-      console.log('EASIER has been removed successfully.');
-    } catch (error) {
-      console.error('Error removing EASIER:', error.message);
-    }
-  }
-  function checkEasierFile() {
-    const projectPath = process.cwd(); // Get the current working directory
-  
-    // Check if 'easier.eas' file exists in the project
-    const filePath = path.join(projectPath, 'temp.eas');
-  
-    fs.access(filePath, fs.constants.F_OK, (err) => {
-      if (err) {
-        console.log(`${red}The file 'easier.eas' does not exist in the project.${reset}`);
-      } else {
-        console.log(`${green}The file 'easier.eas' exists in the project.${reset}`);
-      }
-    });
-  }
+    `);
+    // Create a new directory for the project.
+    createFolder(projectName);
+    // Copy the template to the project directory.
+    fs_extra.copySync(templatePath, projectName);
+    // Get the package name synchronously
+    console.log('Description : \n');
+    const description = readlineSync.question('Enter the description of ' + yellow + projectName + reset + ': ');
+    // Get the package name synchronously
+    console.log('Package : \n');
+    const packageName = readlineSync.question('Enter the package name: ');
+    //get database name 
+    console.log('Data Base  : \n');
+    const dataBaseName = readlineSync.question('Enter the database name: ');
+     //get job name 
 
+     console.log('Job Name  : \n');
+     const jobName = readlineSync.question('Enter the Job name: ');
 
+     console.log('common Version  : \n');
+     const commonVersion = readlineSync.question('Enter the abb flux  common version: ');
 
-  function replaceProjectNameTokens(filePath, projectName, packageName,jobName) {
-    try {
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
-      
-      const updatedContent = fileContent
-      .replace(/\${project.name\.easier}/g, projectName)
-      .replace(/\${JOB.NAME\.easier}/g, jobName)
-      .replace(/\${package.name\.easier}/g, packageName);
-      fs.writeFileSync(filePath, updatedContent);
-      console.log(`File '${filePath}' ${green}updated successfully.${reset}`);
-    } catch (error) {
-      console.error(`Error replacing tokens in file '${filePath}': ${error.message}`);
-    }
+    // Process the project directory and replace tokens
+    processDirectory(projectName, projectName, packageName,jobName.toUpperCase(),commonVersion);
+    // Add or update the description in the README.md file
+    const readmeFilePath = path.join(projectName, 'README.md');
+    const readmeContent = fs.readFileSync(readmeFilePath, 'utf-8');
+    // Look for the existence of a description section
+    const descriptionSectionRegex = /## Description([\s\S]*?)(?=##|$)/;
+    const hasDescriptionSection = descriptionSectionRegex.test(readmeContent);
+    // If a description section exists, update it; otherwise, add a new section
+    const updatedReadmeContent = hasDescriptionSection
+      ? readmeContent.replace(descriptionSectionRegex, `## Description\n\n${description}\n\n`)
+      : readmeContent + `\n\n## Description\n\n${description}\n\n`;
+    fs.writeFileSync(readmeFilePath, updatedReadmeContent);
+    console.log(`Spring Batch project '${projectName}' generated from the template.`);
+  } catch (error) {
+    console.error(`Error generating the Spring Batch project: ${error.message}`);
   }
-  
-  function processDirectory(directoryPath, projectName, packageName,jobName,commonVersion) {
-    try {
-      // Read all files in the directory
-      const files = fs.readdirSync(directoryPath);
-  
-      // Process each file in the directory
-      files.forEach((file) => {
-        const filePath = path.join(directoryPath, file);
-        const stats = fs.statSync(filePath);
-  
-        if (stats.isDirectory()) {
-          // Recursively process subdirectories
-          processDirectory(filePath, projectName, packageName,jobName,commonVersion);
-        } else {
-          // Replace tokens in each file
-          replaceProjectNameTokens(filePath, projectName, packageName,jobName);
-          // Rename the file if it contains ${JOB.NAME.easier} common.version.easier
-          const newFileName = file.replace(/\${JOB.NAME\.easier}/g, jobName.toUpperCase()).replace(/\${common.version\.easier}/g,commonVersion);
-          if (newFileName !== file) {
-            const newFilePath = path.join(directoryPath, newFileName);
-            fs.renameSync(filePath, newFilePath);
-            console.log(`File '${filePath}' ${yellow}renamed to '${newFileName}' successfully.${reset}`);
-          }
-        }
-      });
-    } catch (error) {
-      console.error(`Error processing directory '${directoryPath}': ${error.message}`);
-    }
-  }
-  
-  async function generateSpringBatchProject(projectName, templatePath) {
-    try {
-      console.log(`
-    ************************************************************
-    *                                                          *
-    *             EASIER CLI Tool                              *
-    *             Generating your Spring Batch project...      *
-    *             Please wait...                               *
-    *                                                          *
-    ************************************************************
-      `);
-      // Create a new directory for the project.
-      createFolder(projectName);
-      // Copy the template to the project directory.
-      fs_extra.copySync(templatePath, projectName);
-      // Get the package name synchronously
-      console.log('Description : \n');
-      const description = readlineSync.question('Enter the description of ' + yellow + projectName + reset + ': ');
-      // Get the package name synchronously
-      console.log('Package : \n');
-      const packageName = readlineSync.question('Enter the package name: ');
-      //get database name 
-      console.log('Data Base  : \n');
-      const dataBaseName = readlineSync.question('Enter the database name: ');
-       //get job name 
+}
 
-       console.log('Job Name  : \n');
-       const jobName = readlineSync.question('Enter the Job name: ');
-
-       console.log('common Version  : \n');
-       const commonVersion = readlineSync.question('Enter the abb flux  common version: ');
-
-      // Process the project directory and replace tokens
-      processDirectory(projectName, projectName, packageName,jobName.toUpperCase(),commonVersion);
-      // Add or update the description in the README.md file
-      const readmeFilePath = path.join(projectName, 'README.md');
-      const readmeContent = fs.readFileSync(readmeFilePath, 'utf-8');
-      // Look for the existence of a description section
-      const descriptionSectionRegex = /## Description([\s\S]*?)(?=##|$)/;
-      const hasDescriptionSection = descriptionSectionRegex.test(readmeContent);
-      // If a description section exists, update it; otherwise, add a new section
-      const updatedReadmeContent = hasDescriptionSection
-        ? readmeContent.replace(descriptionSectionRegex, `## Description\n\n${description}\n\n`)
-        : readmeContent + `\n\n## Description\n\n${description}\n\n`;
-      fs.writeFileSync(readmeFilePath, updatedReadmeContent);
-      console.log(`Spring Batch project '${projectName}' generated from the template.`);
-    } catch (error) {
-      console.error(`Error generating the Spring Batch project: ${error.message}`);
-    }
-  }
-  
-  
-module.exports = { displayVersion, displayHelp,
-   displayeasierInfo,createFolder, generateHTMLFile,
-   createFileInSubfolder,displayDirectoryTree,generateReactNativeApp,
-   historyCommands,displayCommandHistory,removeEasier,checkEasierFile,
-   generateSpringBatchProject,
-  cyan, red, green, reset };
+module.exports = { 
+  displayVersion, 
+  displayHelp,
+  displayeasierInfo,
+  createFolder, 
+  generateHTMLFile,
+  createFileInSubfolder,
+  displayDirectoryTree,
+  generateReactNativeApp,
+  downloadEasierLanguage,  // New function export
+  historyCommands,
+  displayCommandHistory,
+  removeEasier,
+  checkEasierFile,
+  generateSpringBatchProject,
+  cyan, red, green, reset 
+};
