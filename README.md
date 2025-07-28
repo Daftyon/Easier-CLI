@@ -15,4 +15,6 @@ EASIER CLI is a versatile tool designed to simplify development and templating p
 Install EASIER globally using npm:
 
 ```bash
-npm i @easier-tools/easier-cli
+run npm install for installing node modules
+in the path of the project cli run this command "npm install -g ."
+
