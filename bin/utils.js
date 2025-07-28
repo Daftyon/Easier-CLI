@@ -243,8 +243,12 @@ function generateReactNativeApp(appName) {
 }
 
 function downloadEasierLanguage(projectName) {
+  const https = require('https');
+  const AdmZip = require('adm-zip');
+  
   try {
-    const languageRepoUrl = 'https://github.com/Daftyon/Easier-language';
+    const downloadUrl = 'https://github.com/Daftyon/Easier-language/archive/refs/heads/main.zip';
+    const zipFileName = 'easier-language.zip';
 
     console.log(`
 ************************************************************
@@ -256,35 +260,58 @@ function downloadEasierLanguage(projectName) {
 ************************************************************
     `);
 
-    // Clone the Easier language repository
-    console.log(`${cyan}Cloning Easier language repository...${reset}`);
-    execSync(`git clone ${languageRepoUrl} ${projectName}`, { stdio: 'inherit' });
-
-    console.log(`${green}✓ Easier language downloaded successfully to '${projectName}' directory.${reset}`);
+    console.log(`${cyan}📥 Downloading Easier language files...${reset}`);
     
-    // Change to the project directory
-    process.chdir(projectName);
+    const zipFile = fs.createWriteStream(zipFileName);
     
-    // Check if there's a package.json file and install dependencies
-    const packageJsonPath = path.join(process.cwd(), 'package.json');
-    if (fs.existsSync(packageJsonPath)) {
-      console.log(`${cyan}Installing language dependencies...${reset}`);
-      try {
-        execSync('npm install', { stdio: 'inherit' });
-        console.log(`${green}✓ Dependencies installed successfully.${reset}`);
-      } catch (installError) {
-        console.log(`${yellow}⚠ Could not install dependencies automatically. You may need to run 'npm install' manually.${reset}`);
-      }
-    }
-    
-    // Check for README or documentation
-    const readmePath = path.join(process.cwd(), 'README.md');
-    if (fs.existsSync(readmePath)) {
-      console.log(`${cyan}📚 Documentation found: README.md${reset}`);
-    }
-    
-    // Provide usage instructions
-    console.log(`
+    https.get(downloadUrl, (response) => {
+      if (response.statusCode === 200) {
+        response.pipe(zipFile);
+        
+        zipFile.on('finish', () => {
+          zipFile.close();
+          console.log(`${green}✓ Download completed successfully.${reset}`);
+          
+          try {
+            console.log(`${cyan}📂 Extracting files...${reset}`);
+            
+            // Extract the ZIP file
+            const zip = new AdmZip(zipFileName);
+            zip.extractAllTo('./', true);
+            
+            // GitHub creates a folder named "Easier-language-main", rename it to projectName
+            const extractedFolderName = 'Easier-language-main';
+            if (fs.existsSync(extractedFolderName)) {
+              fs.renameSync(extractedFolderName, projectName);
+            }
+            
+            // Clean up the ZIP file
+            fs.unlinkSync(zipFileName);
+            console.log(`${green}✓ Files extracted to '${projectName}' directory.${reset}`);
+            
+            // Change to the project directory
+            process.chdir(projectName);
+            
+            // Check if there's a package.json file and install dependencies
+            const packageJsonPath = path.join(process.cwd(), 'package.json');
+            if (fs.existsSync(packageJsonPath)) {
+              console.log(`${cyan}📦 Installing language dependencies...${reset}`);
+              try {
+                execSync('npm install', { stdio: 'inherit' });
+                console.log(`${green}✓ Dependencies installed successfully.${reset}`);
+              } catch (installError) {
+                console.log(`${yellow}⚠ Could not install dependencies automatically. You may need to run 'npm install' manually.${reset}`);
+              }
+            }
+            
+            // Check for README or documentation
+            const readmePath = path.join(process.cwd(), 'README.md');
+            if (fs.existsSync(readmePath)) {
+              console.log(`${cyan}📚 Documentation found: README.md${reset}`);
+            }
+            
+            // Provide usage instructions
+            console.log(`
 ${green}🎉 Easier Language Setup Complete!${reset}
 
 ${cyan}Next steps:${reset}
@@ -298,14 +325,42 @@ ${cyan}Quick start:${reset}
 - Join the Daftyon community: ${yellow}https://github.com/Daftyon${reset}
 
 ${green}Happy coding with Easier Language! 🚀${reset}
-    `);
+            `);
+            
+          } catch (extractError) {
+            console.error(`${red}❌ Error extracting files: ${extractError.message}${reset}`);
+            // Clean up ZIP file on error
+            if (fs.existsSync(zipFileName)) {
+              fs.unlinkSync(zipFileName);
+            }
+            process.exit(1);
+          }
+        });
+        
+        zipFile.on('error', (err) => {
+          console.error(`${red}❌ Error writing file: ${err.message}${reset}`);
+          process.exit(1);
+        });
+        
+      } else {
+        console.error(`${red}❌ Failed to download: HTTP ${response.statusCode}${reset}`);
+        process.exit(1);
+      }
+    }).on('error', (err) => {
+      console.error(`${red}❌ Download error: ${err.message}${reset}`);
+      console.log(`${yellow}💡 Troubleshooting tips:${reset}`);
+      console.log(`   - Check your internet connection`);
+      console.log(`   - Verify the repository is accessible: https://github.com/Daftyon/Easier-language`);
+      console.log(`   - Try again in a few moments`);
+      process.exit(1);
+    });
 
   } catch (error) {
-    console.error(`${red}❌ Error downloading Easier language: ${error.message}${reset}`);
+    console.error(`${red}❌ Error setting up download: ${error.message}${reset}`);
     console.log(`${yellow}💡 Troubleshooting tips:${reset}`);
-    console.log(`   - Make sure you have Git installed`);
     console.log(`   - Check your internet connection`);
-    console.log(`   - Verify the repository URL: ${languageRepoUrl}`);
+    console.log(`   - Make sure you have write permissions in this directory`);
+    console.log(`   - Try running the command as administrator if needed`);
     process.exit(1);
   }
 }
