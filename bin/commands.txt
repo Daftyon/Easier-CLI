@@ -1,0 +1,4 @@
+npm install -g .
+"install npm install -g ."
+git add . && git commit -m "chnages " && git push -f && npm publish --access=public
+
