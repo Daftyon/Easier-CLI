@@ -16,4 +16,3 @@ Install EASIER globally using npm:
 
 ```bash
 install npm install -g .
-
