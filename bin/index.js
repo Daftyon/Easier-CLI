@@ -24,8 +24,8 @@ function main() {
   const commandArgs = process.argv.slice(2);
   historyCommands(commandArgs);
 
-  if (commandArgs.length === 0 || (commandArgs.length === 1 && commandArgs[0] === 'easier')) {
-    // Display help if no arguments or only 'easier' is provided
+  if (commandArgs.length === 0 || (commandArgs.length === 1 && commandArgs[0] ===el)) {
+    // Display help if no arguments or onlyel is provided
     displayHelp();
   }
   else if (commandArgs[0] === '--version' || commandArgs[0] === '-v') {
